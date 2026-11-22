@@ -89,6 +89,48 @@ def extract(stego_path, message_path, password):
     print(f"Restored cover: {restored}")
 
 
+def assess(stego_path, password):
+    stego_path = Path(stego_path)
+    image = read_image(stego_path)
+    decrypt(extract_packet(stego_path), password)
+    folder = stego_path.parent / f"{stego_path.stem}_attacks"
+    folder.mkdir(exist_ok=True)
+    h, w = image.shape[:2]
+    variants = {
+        "JPEG compression": (folder / "compressed.jpg", image, [cv2.IMWRITE_JPEG_QUALITY, 25]),
+        "Cropping": (folder / "cropped.png", image[h // 10:, w // 10:], []),
+        "PNG to BMP": (folder / "converted.bmp", image, []),
+    }
+    for name, (path, changed, options) in variants.items():
+        if not cv2.imwrite(str(path), changed, options):
+            raise ValueError(f"Could not create attack image: {path}")
+        try:
+            decrypt(extract_packet(path), password)
+            result = "message recovered"
+        except ValueError:
+            result = "message damaged"
+        print(f"{name}: {result} ({path})")
+
+
+def pair_score(image):
+    counts = np.bincount(image.reshape(-1), minlength=256).astype(float)
+    even, odd = counts[::2], counts[1::2]
+    return float(np.sum((even - odd) ** 2 / np.maximum(even + odd, 1)))
+
+
+def analyze(stego_path):
+    stego = read_image(stego_path)
+    cover_path = Path(str(stego_path) + ".cover.png")
+    cover = read_image(cover_path)
+    if cover.shape != stego.shape:
+        raise ValueError("Cover backup and stego image dimensions differ.")
+    changed = np.mean((cover & 1) != (stego & 1))
+    print(f"Changed LSBs: {changed:.2%}")
+    print(f"Even/odd pair score (cover): {pair_score(cover):.1f}")
+    print(f"Even/odd pair score (stego): {pair_score(stego):.1f}")
+    print("A lower stego score can indicate LSB replacement; this is only a basic clue.")
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     commands = parser.add_subparsers(dest="command", required=True)
@@ -99,12 +141,19 @@ def main():
     get = commands.add_parser("extract", help="extract and decrypt a message")
     get.add_argument("stego", help="stego PNG image")
     get.add_argument("message", help="output message file")
+    check = commands.add_parser("assess", help="try common image transformations")
+    check.add_argument("stego", help="stego PNG image")
+    stats = commands.add_parser("analyze", help="compare basic LSB statistics")
+    stats.add_argument("stego", help="stego PNG image")
     args = parser.parse_args()
-    password = getpass.getpass("Passphrase: ")
     if args.command == "embed":
-        embed(args.cover, args.message, args.stego, password)
+        embed(args.cover, args.message, args.stego, getpass.getpass("Passphrase: "))
+    elif args.command == "extract":
+        extract(args.stego, args.message, getpass.getpass("Passphrase: "))
+    elif args.command == "assess":
+        assess(args.stego, getpass.getpass("Passphrase: "))
     else:
-        extract(args.stego, args.message, password)
+        analyze(args.stego)
 
 
 if __name__ == "__main__":
