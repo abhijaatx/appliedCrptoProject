@@ -57,6 +57,11 @@ def extract_packet(path):
 
 
 def embed(cover_path, message_path, stego_path, password):
+    stego_path = Path(stego_path)
+    if stego_path.resolve() in {Path(cover_path).resolve(), Path(message_path).resolve()}:
+        raise ValueError("Output path must be different from the input files.")
+    if stego_path.suffix.lower() != ".png":
+        raise ValueError("Save the stego image as PNG to preserve its LSBs.")
     cover = read_image(cover_path)
     packet = encrypt(Path(message_path).read_bytes(), password)
     data = MAGIC + len(packet).to_bytes(4, "big") + packet
@@ -65,9 +70,6 @@ def embed(cover_path, message_path, stego_path, password):
     if len(bits) > len(pixels):
         raise ValueError("Message is too large for this image.")
     pixels[:len(bits)] = (pixels[:len(bits)] & 254) | bits
-    stego_path = Path(stego_path)
-    if stego_path.suffix.lower() != ".png":
-        raise ValueError("Save the stego image as PNG to preserve its LSBs.")
     if not cv2.imwrite(str(stego_path), cover):
         raise ValueError(f"Could not save image: {stego_path}")
     backup = Path(str(stego_path) + ".cover.png")
@@ -78,6 +80,8 @@ def embed(cover_path, message_path, stego_path, password):
 
 
 def extract(stego_path, message_path, password):
+    if Path(message_path).resolve() == Path(stego_path).resolve():
+        raise ValueError("Message output path must differ from the stego image.")
     backup = Path(str(stego_path) + ".cover.png")
     if not backup.exists():
         raise ValueError(f"Original cover backup not found: {backup}")
