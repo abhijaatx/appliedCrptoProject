@@ -1,6 +1,6 @@
-# Hybrid Stego-Crypto System
+# Hybrid Stego-Crypto System for Military Communication
 
-A college-lab command-line demo that encrypts a text file with AES and hides
+A command-line demo that encrypts a text file with AES and hides
 the encrypted bytes in the least significant bits (LSBs) of a PNG image.
 
 ## Requirements and setup
@@ -90,6 +90,4 @@ methods such as RS analysis across a larger image set.
 3. The program writes a 64-bit header and the encrypted packet into image LSBs.
 4. Extraction reads the packet and AES-EAX verifies it before releasing the
    plaintext.
-
-The cover must have enough color-channel values for the header and packet.
-Use a larger image for a larger message.
+   
