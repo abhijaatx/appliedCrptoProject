@@ -9,11 +9,24 @@ the encrypted bytes in the least significant bits (LSBs) of a PNG image.
 - A cover image, such as `cover.png`
 - A plain-text message file, such as `message.txt`
 
-Install the Python packages:
+Create and activate a virtual environment, then install the packages into that
+same environment:
 
 ```bash
+# macOS / Linux
+python3 -m venv .venv
+source .venv/bin/activate
+
+# Windows PowerShell
+py -3 -m venv .venv
+.venv\Scripts\Activate.ps1
+
+# Both platforms
 python -m pip install -r requirements.txt
 ```
+
+Run the commands below from the activated environment so `cv2` and the other
+packages are available to the same Python interpreter.
 
 ## Run
 
@@ -85,7 +98,8 @@ methods such as RS analysis across a larger image set.
 
 ## How it works
 
-1. PBKDF2 derives a 256-bit key from the passphrase and a random salt.
+1. PBKDF2-HMAC-SHA256 derives a 256-bit key from the passphrase and a random
+   salt using 600,000 iterations.
 2. AES-EAX encrypts and authenticates the message using a random nonce.
 3. The program writes a 64-bit header and the encrypted packet into image LSBs.
 4. Extraction reads the packet and AES-EAX verifies it before releasing the

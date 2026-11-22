@@ -9,6 +9,7 @@ from pathlib import Path
 import cv2
 import numpy as np
 from Crypto.Cipher import AES
+from Crypto.Hash import SHA256
 from Crypto.Protocol.KDF import PBKDF2
 
 MAGIC = b"STG1"
@@ -17,7 +18,9 @@ SALT_SIZE = NONCE_SIZE = TAG_SIZE = 16
 
 def encrypt(message, password):
     salt = os.urandom(SALT_SIZE)
-    key = PBKDF2(password.encode(), salt, dkLen=32, count=200_000)
+    key = PBKDF2(
+        password.encode(), salt, dkLen=32, count=600_000, hmac_hash_module=SHA256
+    )
     nonce = os.urandom(NONCE_SIZE)
     cipher = AES.new(key, AES.MODE_EAX, nonce=nonce)
     ciphertext, tag = cipher.encrypt_and_digest(message)
@@ -28,7 +31,9 @@ def decrypt(packet, password):
     if len(packet) < SALT_SIZE + NONCE_SIZE + TAG_SIZE:
         raise ValueError("Hidden data is incomplete.")
     salt, nonce, tag = packet[:16], packet[16:32], packet[32:48]
-    key = PBKDF2(password.encode(), salt, dkLen=32, count=200_000)
+    key = PBKDF2(
+        password.encode(), salt, dkLen=32, count=600_000, hmac_hash_module=SHA256
+    )
     cipher = AES.new(key, AES.MODE_EAX, nonce=nonce)
     try:
         return cipher.decrypt_and_verify(packet[48:], tag)
