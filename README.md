@@ -2,7 +2,6 @@
 
 A college-lab command-line demo that encrypts a text file with AES and hides
 the encrypted bytes in the least significant bits (LSBs) of a PNG image.
-OpenCV handles images; PyCryptodome provides AES-EAX.
 
 ## Requirements and setup
 
@@ -94,9 +93,3 @@ methods such as RS analysis across a larger image set.
 
 The cover must have enough color-channel values for the header and packet.
 Use a larger image for a larger message.
-
-## Limitations
-
-This is a teaching demo, not a secure military communication product. LSB
-steganography can be detected by statistical analysis and damaged by image
-processing. Do not use it for real confidential data.
